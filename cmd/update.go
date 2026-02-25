@@ -64,18 +64,23 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		current = "v" + current
 	}
 
+	isDev := current == "dev"
+
 	if checkOnly {
 		fmt.Printf("  Current: %s\n", Version)
 		fmt.Printf("  Latest:  %s\n", latest)
-		if current == latest {
+		if !isDev && current == latest {
 			fmt.Println("\nAlready up to date.")
+		} else if isDev {
+			fmt.Println("\nYou are running a development build.")
+			fmt.Println("Run `metro update` to switch to the latest release.")
 		} else {
 			fmt.Println("\nRun `metro update` to install.")
 		}
 		return nil
 	}
 
-	if current == latest {
+	if !isDev && current == latest {
 		fmt.Printf("Already up to date (%s).\n", latest)
 		return nil
 	}
@@ -122,6 +127,9 @@ func fetchLatestRelease() (*ghRelease, error) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("no releases found — this is likely a fresh install from source")
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GitHub API returned %s", resp.Status)
 	}

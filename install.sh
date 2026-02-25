@@ -22,9 +22,11 @@ case "$ARCH" in
 esac
 
 # Get latest version tag
-VERSION=$(curl -sSf "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name"' | cut -d '"' -f 4)
+VERSION=$(curl -sSf "https://api.github.com/repos/${REPO}/releases/latest" 2>/dev/null | grep '"tag_name"' | cut -d '"' -f 4)
 if [ -z "$VERSION" ]; then
-  echo "Error: could not determine latest version"
+  echo "Error: no releases found at https://github.com/${REPO}/releases"
+  echo "You can install from source instead:"
+  echo "  go install github.com/${REPO}/cmd/metro@latest"
   exit 1
 fi
 

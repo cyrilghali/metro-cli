@@ -88,31 +88,17 @@ go build -o metro ./cmd/metro
 Get a **free** API token at [prim.iledefrance-mobilites.fr](https://prim.iledefrance-mobilites.fr/), then:
 
 ```bash
-metro config --token YOUR_TOKEN
-```
-
-Set a default station so you can just run `metro departures`:
-
-```bash
-metro config --default-station chatelet
-```
-
-<details>
-<summary>Other token methods</summary>
-
-<br>
-
-```bash
-# Environment variable
 export PRIM_TOKEN=your_token
-
-# .env file in current directory
-echo 'token=your_token' > .env
 ```
 
-Token lookup order: `PRIM_TOKEN` env → `~/.metro.toml` → `.env`
+Add it to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) to make it permanent.
 
-</details>
+Save a default place so you can just run `metro d`:
+
+```bash
+metro places save home chatelet
+metro places default home
+```
 
 <br>
 
@@ -127,12 +113,13 @@ metro dep "gare de lyon"              # quotes for multi-word names
 metro d "73 rue rivoli"                # search by address (finds nearby stops)
 metro d home                           # use a saved place (see "metro places")
 metro d --here                         # auto-detect location via browser
-metro d                                # uses your default station
+metro d                                # uses your default place
 metro d chatelet -m metro              # metro only
 metro d chatelet -m rer                # RER only
 ```
 
-When multiple stations match, an interactive picker lets you choose:
+When multiple stations match, an interactive picker lets you choose, then
+offers to save it for instant access next time:
 
 ```
 Multiple results found:
@@ -140,7 +127,10 @@ Multiple results found:
   2. Châtelet les Halles (Stop [RER A, RER B, RER D]) - Paris
   3. Château d'Eau (Stop [M4]) - Paris
 
-Pick a number:
+Pick a number: 1
+
+Save for next time? (name or Enter to skip): home
+Saved! Next time just run: metro d home
 ```
 
 <br>
@@ -189,6 +179,7 @@ Save stations you use often and skip the search + picker entirely:
 metro places                           # list saved places
 metro places save home chatelet        # save "chatelet" as "home"
 metro places save work "la defense"    # save "la defense" as "work"
+metro places default home               # set default for "metro d"
 metro places remove home               # remove a saved place
 ```
 
@@ -197,6 +188,7 @@ Then just use the alias:
 ```bash
 metro d home                           # instant — no search, no picker
 metro d work -m rer                    # works with all flags
+metro d                                # uses the default place
 ```
 
 <br>
@@ -205,11 +197,10 @@ metro d work -m rer                    # works with all flags
 
 ```bash
 metro config                           # view current config
-metro config --token YOUR_TOKEN        # save API token
-metro config --default-station nation  # save default station
 ```
 
-Config is stored in `~/.metro.toml`.
+Saved places and default are stored in `~/.metro.toml`.
+The API token is read from the `PRIM_TOKEN` environment variable.
 
 <br>
 

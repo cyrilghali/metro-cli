@@ -8,9 +8,6 @@ import (
 	"net/url"
 	"os"
 	"time"
-
-	"github.com/cyrilghali/metro-cli/internal/config"
-	"github.com/joho/godotenv"
 )
 
 const (
@@ -24,29 +21,9 @@ type Client struct {
 }
 
 func New() (*Client, error) {
-	// Token lookup order:
-	// 1. PRIM_TOKEN env var
-	// 2. token in ~/.metro.toml
-	// 3. token= in .env (current dir)
-
 	key := os.Getenv("PRIM_TOKEN")
-
 	if key == "" {
-		if cfg, err := config.Load(); err == nil && cfg.Token != "" {
-			key = cfg.Token
-		}
-	}
-
-	if key == "" {
-		_ = godotenv.Load()
-		key = os.Getenv("token")
-		if key == "" {
-			key = os.Getenv("PRIM_TOKEN")
-		}
-	}
-
-	if key == "" {
-		return nil, fmt.Errorf("API token not found\n\nSet it with one of:\n  metro config --token <your-token>\n  export PRIM_TOKEN=<your-token>\n  echo 'token=<your-token>' > .env\n\nGet a free token at https://prim.iledefrance-mobilites.fr")
+		return nil, fmt.Errorf("PRIM_TOKEN not set\n\nGet a free token at https://prim.iledefrance-mobilites.fr\nThen set it:\n  export PRIM_TOKEN=<your-token>\n\nTo make it permanent, add the line above to your shell profile (~/.bashrc, ~/.zshrc, etc.)")
 	}
 
 	return &Client{

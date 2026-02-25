@@ -22,9 +22,11 @@ Examples:
   metro places                          # list saved places
   metro places save home chatelet       # save "chatelet" as "home"
   metro places save work "la defense"   # save "la defense" as "work"
+  metro places default home             # set default for "metro d"
   metro places remove home              # remove saved place
 
-  metro d home                          # use saved place directly`,
+  metro d home                          # use saved place directly
+  metro d                               # uses the default place`,
 	RunE: runPlacesList,
 }
 
@@ -49,9 +51,22 @@ var placesRemoveCmd = &cobra.Command{
 	RunE:    runPlacesRemove,
 }
 
+var placesDefaultCmd = &cobra.Command{
+	Use:   "default <alias>",
+	Short: "Set the default place for \"metro d\" with no arguments",
+	Long: `Mark a saved place as the default, used when you run "metro d" with no station.
+
+Examples:
+  metro places default home
+  metro places default work`,
+	Args: cobra.ExactArgs(1),
+	RunE: runPlacesDefault,
+}
+
 func init() {
 	placesCmd.AddCommand(placesSaveCmd)
 	placesCmd.AddCommand(placesRemoveCmd)
+	placesCmd.AddCommand(placesDefaultCmd)
 	rootCmd.AddCommand(placesCmd)
 }
 
@@ -78,7 +93,11 @@ func runPlacesList(cmd *cobra.Command, args []string) error {
 		if p.City != "" {
 			city = " - " + p.City
 		}
-		fmt.Printf("  \033[1m%-12s\033[0m %s (%s%s)\n", alias, p.Name, label, city)
+		def := ""
+		if cfg.DefaultPlace == alias {
+			def = " (default)"
+		}
+		fmt.Printf("  \033[1m%-12s\033[0m %s (%s%s)%s\n", alias, p.Name, label, city, def)
 	}
 	fmt.Println("\nUse with: metro d <alias>")
 
@@ -118,29 +137,13 @@ func runPlacesSave(cmd *cobra.Command, args []string) error {
 	if len(candidates) > 1 {
 		place, err = pickPlace(candidates)
 		if err != nil {
-			fmt.Printf("  %s\n", err)
-			place = candidates[0]
+			return err
 		}
 	}
 
 	// Save to config
-	cfg, err := config.Load()
-	if err != nil {
-		return fmt.Errorf("loading config: %w", err)
-	}
-	if cfg.Places == nil {
-		cfg.Places = make(map[string]config.SavedPlace)
-	}
-
-	cfg.Places[alias] = config.SavedPlace{
-		Name: place.Name,
-		Type: place.Type,
-		ID:   place.ID,
-		City: place.City,
-	}
-
-	if err := config.Save(cfg); err != nil {
-		return fmt.Errorf("saving config: %w", err)
+	if err := savePlace(alias, place); err != nil {
+		return err
 	}
 
 	city := ""
@@ -167,10 +170,63 @@ func runPlacesRemove(cmd *cobra.Command, args []string) error {
 	name := cfg.Places[alias].Name
 	delete(cfg.Places, alias)
 
+	// Clear default if it pointed to this alias
+	if cfg.DefaultPlace == alias {
+		cfg.DefaultPlace = ""
+	}
+
 	if err := config.Save(cfg); err != nil {
 		return fmt.Errorf("saving config: %w", err)
 	}
 
 	fmt.Printf("Removed \"%s\" (%s)\n", alias, name)
+	return nil
+}
+
+func runPlacesDefault(cmd *cobra.Command, args []string) error {
+	alias := strings.ToLower(args[0])
+
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+
+	place, ok := cfg.Places[alias]
+	if !ok {
+		return fmt.Errorf("no saved place named \"%s\"\nSave one first: metro places save %s <station>", alias, alias)
+	}
+
+	cfg.DefaultPlace = alias
+	if err := config.Save(cfg); err != nil {
+		return fmt.Errorf("saving config: %w", err)
+	}
+
+	fmt.Printf("Default set to \"%s\" (%s)\n", alias, place.Name)
+	fmt.Println("Now \"metro d\" with no arguments will use this place.")
+	return nil
+}
+
+// savePlace persists a PRIMPlace as a saved place under the given alias.
+func savePlace(alias string, place model.PRIMPlace) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+	if cfg.Places == nil {
+		cfg.Places = make(map[string]config.SavedPlace)
+	}
+
+	cfg.Places[alias] = config.SavedPlace{
+		Name: place.Name,
+		Type: place.Type,
+		ID:   place.ID,
+		City: place.City,
+		Lat:  place.Y,
+		Lon:  place.X,
+	}
+
+	if err := config.Save(cfg); err != nil {
+		return fmt.Errorf("saving config: %w", err)
+	}
 	return nil
 }

@@ -8,16 +8,17 @@ import (
 )
 
 type SavedPlace struct {
-	Name string `toml:"name"`
-	Type string `toml:"type"` // "StopArea" or "Address"
-	ID   string `toml:"id"`   // stop area ID (for StopArea type)
-	City string `toml:"city"`
+	Name string  `toml:"name"`
+	Type string  `toml:"type"` // "StopArea" or "Address"
+	ID   string  `toml:"id"`   // stop area ID (for StopArea type)
+	City string  `toml:"city"`
+	Lat  float64 `toml:"lat,omitempty"`
+	Lon  float64 `toml:"lon,omitempty"`
 }
 
 type Config struct {
-	Token          string                `toml:"token"`
-	DefaultStation string                `toml:"default_station"`
-	Places         map[string]SavedPlace `toml:"places"`
+	DefaultPlace string                `toml:"default_place"`
+	Places       map[string]SavedPlace `toml:"places"`
 }
 
 func Path() string {

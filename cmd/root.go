@@ -11,10 +11,11 @@ import (
 var Version = "dev"
 
 var rootCmd = &cobra.Command{
-	Use:     "metro",
-	Short:   "Paris metro departures and disruptions",
-	Long:    "A CLI tool to check next metro departures near you and current traffic disruptions in Paris.",
-	Version: Version,
+	Use:               "metro",
+	Short:             "Paris metro departures and disruptions",
+	Long:              "A CLI tool to check next metro departures near you and current traffic disruptions in Paris.",
+	Version:           Version,
+	CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 }
 
 func Execute() {

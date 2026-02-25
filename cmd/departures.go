@@ -22,6 +22,8 @@ var (
 	hereLAN      bool
 	hereCacheTTL time.Duration
 	modeFlag     string
+
+	stdinReader = bufio.NewReader(os.Stdin)
 )
 
 var departuresCmd = &cobra.Command{
@@ -55,6 +57,7 @@ Examples:
   # use a saved place (skips search)
   metro d home
   metro d work
+  metro d                               # uses default saved place
 
   # auto-detect location via browser
   metro d --here
@@ -91,23 +94,26 @@ func runDepartures(cmd *cobra.Command, args []string) error {
 	// Station/address search
 	query := strings.Join(args, " ")
 	if query == "" {
+		// No args: use default saved place
 		cfg, err := config.Load()
 		if err != nil {
 			return fmt.Errorf("loading config: %w", err)
 		}
-		if cfg.DefaultStation == "" {
-			return fmt.Errorf("no station provided and no default set\nUsage: metro departures <station>\n       metro departures --here\nOr:    metro config --default-station chatelet")
+		if cfg.DefaultPlace == "" {
+			return fmt.Errorf("no station provided and no default place set\nUsage: metro departures <station>\n       metro departures --here\nOr save a default place:\n       metro places save home chatelet\n       metro places default home")
 		}
-		query = cfg.DefaultStation
+		saved, ok := cfg.Places[cfg.DefaultPlace]
+		if !ok {
+			return fmt.Errorf("default place \"%s\" not found in saved places\nRun: metro places save %s <station>", cfg.DefaultPlace, cfg.DefaultPlace)
+		}
+		fmt.Println()
+		return showSavedPlace(c, saved, mode)
 	}
 
 	// Check saved places first
 	if saved, ok := lookupSavedPlace(query); ok {
 		fmt.Println()
-		if saved.Type == "StopArea" {
-			return showStopAreaDepartures(c, saved.ID, saved.Name, saved.City, mode)
-		}
-		return showNearbyDepartures(c, saved.Name+" "+saved.City, mode)
+		return showSavedPlace(c, saved, mode)
 	}
 
 	fmt.Printf("Searching for \"%s\"...\n", query)
@@ -144,10 +150,12 @@ func runDepartures(cmd *cobra.Command, args []string) error {
 	if len(candidates) > 1 {
 		place, err = pickPlace(candidates)
 		if err != nil {
-			fmt.Printf("  %s\n", err)
-			place = candidates[0]
+			return err
 		}
 	}
+
+	// Offer to save the picked place
+	promptSavePlace(place)
 
 	fmt.Println()
 
@@ -301,16 +309,47 @@ func pickPlace(places []model.PRIMPlace) (model.PRIMPlace, error) {
 		fmt.Printf("  %d. %s (%s%s)\n", i+1, p.Name, label, extra)
 	}
 
-	fmt.Print("\nPick a number: ")
-	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
-	input = strings.TrimSpace(input)
+	for attempts := 0; attempts < 3; attempts++ {
+		fmt.Print("\nPick a number: ")
+		input, _ := stdinReader.ReadString('\n')
+		input = strings.TrimSpace(input)
 
-	idx, err := strconv.Atoi(input)
-	if err != nil || idx < 1 || idx > len(places) {
-		return places[0], fmt.Errorf("invalid choice, using first result")
+		idx, err := strconv.Atoi(input)
+		if err == nil && idx >= 1 && idx <= len(places) {
+			return places[idx-1], nil
+		}
+		fmt.Printf("  Invalid choice. Enter a number between 1 and %d.\n", len(places))
 	}
-	return places[idx-1], nil
+	return model.PRIMPlace{}, fmt.Errorf("too many invalid attempts")
+}
+
+// promptSavePlace offers to save a picked place for quick access next time.
+func promptSavePlace(place model.PRIMPlace) {
+	fmt.Print("\nSave for next time? (name or Enter to skip): ")
+	input, _ := stdinReader.ReadString('\n')
+	alias := strings.ToLower(strings.TrimSpace(input))
+	if alias == "" {
+		return
+	}
+
+	if err := savePlace(alias, place); err != nil {
+		fmt.Printf("  Could not save: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Saved! Next time just run: metro d %s\n", alias)
+}
+
+// showSavedPlace dispatches departures for a saved place, using stored coords when available.
+func showSavedPlace(c *client.Client, saved config.SavedPlace, mode model.TransportMode) error {
+	if saved.Type == "StopArea" {
+		return showStopAreaDepartures(c, saved.ID, saved.Name, saved.City, mode)
+	}
+	// Address with stored coordinates: skip geocoding
+	if saved.Lat != 0 && saved.Lon != 0 {
+		return showDeparturesAtCoords(c, fmt.Sprintf("%.6f", saved.Lon), fmt.Sprintf("%.6f", saved.Lat), mode)
+	}
+	return showNearbyDepartures(c, saved.Name+" "+saved.City, mode)
 }
 
 // lookupSavedPlace checks if the query matches a saved place alias (case-insensitive).
