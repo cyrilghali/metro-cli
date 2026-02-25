@@ -119,8 +119,8 @@ if (!navigator.geolocation) {
 // browser's Geolocation API. Works on macOS, Linux, and Windows.
 // If geolocation is blocked (e.g. non-HTTPS access from LAN), the page shows
 // a manual coordinate input form as fallback.
-func GetLocation(timeout time.Duration) (lat, lon float64, err error) {
-	return getLocation(timeout, 0)
+func GetLocation(timeout time.Duration, port int) (lat, lon float64, err error) {
+	return getLocation(timeout, port)
 }
 
 // getLocation is the internal implementation. If fixedPort > 0, it uses that
@@ -173,7 +173,7 @@ func getLocation(timeout time.Duration, fixedPort int) (float64, float64, error)
 	}()
 
 	// Build URLs — localhost for local use, LAN IP for remote access
-	localhostURL := fmt.Sprintf("http://127.0.0.1:%d/locate", port)
+	localhostURL := fmt.Sprintf("http://localhost:%d/locate", port)
 	lanIP := localIP()
 
 	_ = openBrowser(localhostURL) // best-effort, may fail on headless systems

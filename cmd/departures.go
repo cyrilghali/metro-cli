@@ -18,6 +18,7 @@ import (
 
 var (
 	here        bool
+	herePort    int
 	modeFlag    string
 )
 
@@ -38,6 +39,7 @@ Examples:
 
 func init() {
 	departuresCmd.Flags().BoolVar(&here, "here", false, "auto-detect your location via browser geolocation")
+	departuresCmd.Flags().IntVar(&herePort, "port", 0, "port for the --here location server (0 = random)")
 	departuresCmd.Flags().StringVarP(&modeFlag, "mode", "m", "metro", "transport mode: metro, rer, train, tram, bus, all")
 	rootCmd.AddCommand(departuresCmd)
 }
@@ -121,7 +123,7 @@ func runDepartures(cmd *cobra.Command, args []string) error {
 // runDeparturesHere uses browser geolocation to find the user's position.
 func runDeparturesHere(c *client.Client, mode model.TransportMode) error {
 	fmt.Println("Locating you... (opening browser)")
-	lat, lon, err := location.GetLocation(30 * time.Second)
+	lat, lon, err := location.GetLocation(30*time.Second, herePort)
 	if err != nil {
 		return fmt.Errorf("could not get location: %w", err)
 	}
