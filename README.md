@@ -58,6 +58,15 @@ $ metro disruptions --mode rer
 
 ## Install
 
+**Quick install (Linux / macOS):**
+
+```bash
+curl -sSfL https://raw.githubusercontent.com/cyrilghali/metro-cli/master/install.sh | sh
+```
+
+This downloads the latest release binary and installs it to `/usr/local/bin` (may prompt for `sudo`).
+Run it again at any time to update to the latest version.
+
 **From source:**
 
 ```bash
@@ -114,13 +123,14 @@ Token lookup order: `PRIM_TOKEN` env → `~/.metro.toml` → `.env`
 ### `metro departures` — next trains
 
 ```bash
-metro departures chatelet              # search by station name
-metro departures "gare de lyon"        # quotes for multi-word names
-metro departures "73 rue rivoli"       # search by address (finds nearby stops)
-metro departures --here                # auto-detect location via browser
-metro departures                       # uses your default station
-metro departures chatelet --mode rer   # RER departures
-metro departures chatelet -m all       # all transport modes
+metro departures chatelet              # search by station name (all modes)
+metro d chatelet                       # short alias
+metro dep "gare de lyon"              # quotes for multi-word names
+metro d "73 rue rivoli"                # search by address (finds nearby stops)
+metro d --here                         # auto-detect location via browser
+metro d                                # uses your default station
+metro d chatelet -m metro              # metro only
+metro d chatelet -m rer                # RER only
 ```
 
 When multiple stations match, an interactive picker lets you choose:
@@ -139,11 +149,12 @@ Pick a number:
 ### `metro disruptions` — line status
 
 ```bash
-metro disruptions                      # metro lines (default)
-metro disruptions --mode rer           # RER lines
-metro disruptions --mode tram          # tramway lines
-metro disruptions --mode all           # everything
-metro disruptions --line A             # filter by line
+metro disruptions                      # all lines (default)
+metro dis                              # short alias
+metro status                           # another alias
+metro dis -m metro                     # metro lines only
+metro dis -m rer                       # RER lines only
+metro dis --line A                     # filter by line
 ```
 
 Status is color-coded in your terminal:
@@ -162,12 +173,12 @@ Both `departures` and `disruptions` accept a `--mode` / `-m` flag:
 
 | Mode | What | Lines |
 |:-----|:-----|:------|
-| `metro` | Metro (default) | M1-M14, M3B, M7B |
+| `all` | Everything (default) | All modes |
+| `metro` | Metro | M1-M14, M3B, M7B |
 | `rer` | RER | A, B, C, D, E |
 | `train` | Transilien | H, J, K, L, N, P, R, U |
 | `tram` | Tramway | T1-T13 |
 | `bus` | Bus | All IDF bus lines |
-| `all` | Everything | All modes |
 
 <br>
 

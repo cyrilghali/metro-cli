@@ -25,25 +25,27 @@ var (
 )
 
 var departuresCmd = &cobra.Command{
-	Use:   "departures [station or address]",
-	Short: "Show next departures near a location",
+	Use:     "departures [station or address]",
+	Aliases: []string{"d", "dep"},
+	Short:   "Show next departures near a location",
 	Long: `Show next departures near a station or address.
 Active disruptions on displayed lines are shown automatically.
 
 Modes:
-  metro   Metro lines M1-M14         (default)
+  all     All transport types          (default)
+  metro   Metro lines M1-M14
   rer     RER lines A-E
   train   Transilien / suburban rail
   tram    Tramway lines T1-T13
   bus     Bus lines
-  all     All transport types
 
 Examples:
   metro departures chatelet
+  metro d chatelet
   metro departures "gare de lyon"
   metro departures "73 rue rivoli"
-  metro departures --mode rer
-  metro departures chatelet --mode all
+  metro departures --mode metro
+  metro departures chatelet -m rer
 
   # auto-detect location via browser
   metro departures --here
@@ -57,7 +59,7 @@ func init() {
 	departuresCmd.Flags().IntVar(&herePort, "port", 0, "fixed port for --here server (default: random)")
 	departuresCmd.Flags().BoolVar(&hereLAN, "lan", false, "expose --here server on LAN (default: localhost only)")
 	departuresCmd.Flags().DurationVar(&hereCacheTTL, "cache", 0, "reuse cached location within this duration (e.g. 5m, 1h)")
-	departuresCmd.Flags().StringVarP(&modeFlag, "mode", "m", "metro", "transport filter (see modes above)")
+	departuresCmd.Flags().StringVarP(&modeFlag, "mode", "m", "all", "transport filter (see modes above)")
 	rootCmd.AddCommand(departuresCmd)
 }
 
