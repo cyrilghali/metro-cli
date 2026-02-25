@@ -125,6 +125,7 @@ metro departures chatelet              # search by station name (all modes)
 metro d chatelet                       # short alias
 metro dep "gare de lyon"              # quotes for multi-word names
 metro d "73 rue rivoli"                # search by address (finds nearby stops)
+metro d home                           # use a saved place (see "metro places")
 metro d --here                         # auto-detect location via browser
 metro d                                # uses your default station
 metro d chatelet -m metro              # metro only
@@ -180,6 +181,26 @@ Both `departures` and `disruptions` accept a `--mode` / `-m` flag:
 
 <br>
 
+### `metro places` — saved places
+
+Save stations you use often and skip the search + picker entirely:
+
+```bash
+metro places                           # list saved places
+metro places save home chatelet        # save "chatelet" as "home"
+metro places save work "la defense"    # save "la defense" as "work"
+metro places remove home               # remove a saved place
+```
+
+Then just use the alias:
+
+```bash
+metro d home                           # instant — no search, no picker
+metro d work -m rer                    # works with all flags
+```
+
+<br>
+
 ### `metro config` — settings
 
 ```bash
@@ -210,6 +231,7 @@ Works on **macOS**, **Linux**, and **Windows**.
 
 | Feature | How |
 |:--------|:----|
+| **Saved places** | Aliases stored in `~/.metro.toml`, bypass API search |
 | **Station search** | PRIM places API with mode filtering + interactive picker |
 | **Address search** | Navitia geocoding → nearby stops within 500m |
 | **Geolocation** | Temporary localhost server + browser `navigator.geolocation` |

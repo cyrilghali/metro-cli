@@ -42,12 +42,19 @@ Modes:
   tram    Tramway lines T1-T13
   bus     Bus lines
 
+If the query matches a saved place alias, it is used directly
+without searching the API. See "metro places --help".
+
 Examples:
   metro d chatelet
   metro d "gare de lyon"
   metro d "73 rue rivoli"
   metro d chatelet -m metro
   metro d chatelet -m rer
+
+  # use a saved place (skips search)
+  metro d home
+  metro d work
 
   # auto-detect location via browser
   metro d --here
