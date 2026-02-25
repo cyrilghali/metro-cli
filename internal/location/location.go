@@ -21,30 +21,74 @@ const page = `<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width">
-<title>metro - location</title>
+<title>metro</title>
 <style>
-  body { font-family: -apple-system, system-ui, sans-serif; display: flex;
-         justify-content: center; align-items: center; height: 100vh; margin: 0;
-         background: #1a1a2e; color: #e0e0e0; }
-  .box { text-align: center; max-width: 400px; padding: 20px; }
-  .spinner { display: inline-block; width: 24px; height: 24px;
-             border: 3px solid #444; border-top-color: #0af; border-radius: 50%;
-             animation: spin 0.8s linear infinite; margin-bottom: 12px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .done { color: #0f6; }
-  .err  { color: #f44; }
-  input { background: #2a2a3e; border: 1px solid #444; color: #e0e0e0;
-          padding: 8px 12px; border-radius: 4px; width: 200px; margin: 4px 0; }
-  button { background: #0af; color: #1a1a2e; border: none; padding: 8px 20px;
-           border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 8px; }
-  button:hover { background: #09e; }
-  .hint { font-size: 0.85em; color: #888; margin-top: 12px; }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+    display: flex; justify-content: center; align-items: center;
+    height: 100vh; margin: 0;
+    background: #0a0a0a; color: #b0b0b0;
+    font-size: 13px; line-height: 1.6;
+  }
+  .card {
+    border: 1px solid #222; background: #141414;
+    max-width: 440px; width: 90%;
+  }
+  .header {
+    padding: 10px 16px; border-bottom: 1px solid #222;
+    color: #555; font-size: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .header span { color: #67e8f9; }
+  .body { padding: 24px; }
+  .line { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+  .line .dim { color: #444; }
+  .cursor {
+    display: inline-block; width: 7px; height: 14px;
+    background: #67e8f9; animation: blink 1s step-end infinite;
+    vertical-align: middle; margin-left: 2px;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .ok { color: #4ade80; }
+  .err { color: #f87171; }
+  .dim { color: #555; }
+  .label { color: #888; margin: 16px 0 8px; }
+  input[type="text"], input[type="number"] {
+    background: #1a1a1a; border: 1px solid #333; color: #c0c0c0;
+    padding: 8px 12px; width: 100%; margin: 4px 0;
+    font-family: inherit; font-size: 13px; outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus { border-color: #67e8f9; }
+  input::placeholder { color: #444; }
+  button {
+    background: transparent; border: 1px solid #67e8f9; color: #67e8f9;
+    padding: 7px 20px; cursor: pointer; font-family: inherit;
+    font-size: 12px; margin-top: 8px; transition: all 0.15s;
+  }
+  button:hover { background: rgba(103,232,249,0.1); }
+  details { margin-top: 20px; }
+  summary {
+    color: #555; cursor: pointer; font-size: 12px;
+    list-style: none; user-select: none;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: '\25b8  '; }
+  details[open] summary::before { content: '\25be  '; }
+  .coords { margin-top: 12px; }
+  #search-status { margin-top: 8px; font-size: 12px; min-height: 18px; }
+  .fadein { animation: fadein 0.2s ease; }
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
 </style>
 </head>
 <body>
-<div class="box" id="content">
-  <div class="spinner"></div>
-  <p>Sharing your location with <strong>metro</strong> CLI...</p>
+<div class="card">
+  <div class="header"><span>&gt;</span> metro location</div>
+  <div class="body fadein" id="content">
+    <div class="line"><span class="dim">~</span> requesting permission<span class="cursor"></span></div>
+    <div class="line dim" style="font-size:12px">waiting for browser geolocation...</div>
+  </div>
 </div>
 <script>
 function sendCoords(lat, lon) {
@@ -54,24 +98,26 @@ function sendCoords(lat, lon) {
     body: JSON.stringify({ lat: lat, lon: lon })
   }).then(function() {
     document.getElementById('content').innerHTML =
-      '<p class="done">Location shared. You can close this tab.</p>';
+      '<div class="line fadein"><span class="ok">[ok]</span> location shared &mdash; closing...</div>';
     setTimeout(function() { window.close(); }, 1500);
   });
 }
 
 function showManualForm(reason) {
   document.getElementById('content').innerHTML =
-    '<p class="err">' + reason + '</p>' +
-    '<p>Search for a station or address:</p>' +
-    '<input id="addr" type="text" placeholder="e.g. Place d\'Italie" style="width:240px" autofocus><br>' +
-    '<button onclick="searchAddress()">Search</button>' +
-    '<p id="search-status" class="hint"></p>' +
-    '<details style="margin-top:16px"><summary class="hint" style="cursor:pointer">Or enter coordinates manually</summary>' +
-    '<div style="margin-top:8px">' +
-    '<input id="lat" type="number" step="any" placeholder="Latitude (e.g. 48.8566)"><br>' +
-    '<input id="lon" type="number" step="any" placeholder="Longitude (e.g. 2.3522)"><br>' +
-    '<button onclick="submitManual()">Share location</button>' +
-    '</div></details>';
+    '<div class="fadein">' +
+    '<div class="line"><span class="err">[err]</span> ' + reason + '</div>' +
+    '<p class="label">search for a station or address</p>' +
+    '<input id="addr" type="text" placeholder="Place d\'Italie, Chatelet, 73 rue Rivoli..." autofocus>' +
+    '<button onclick="searchAddress()">search</button>' +
+    '<div id="search-status"></div>' +
+    '<details><summary>enter coordinates manually</summary>' +
+    '<div class="coords">' +
+    '<input id="lat" type="number" step="any" placeholder="latitude &mdash; e.g. 48.8566">' +
+    '<input id="lon" type="number" step="any" placeholder="longitude &mdash; e.g. 2.3522">' +
+    '<button onclick="submitManual()">share location</button>' +
+    '</div></details>' +
+    '</div>';
   document.getElementById('addr').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') searchAddress();
   });
@@ -81,33 +127,33 @@ function searchAddress() {
   var q = document.getElementById('addr').value.trim();
   if (!q) return;
   var status = document.getElementById('search-status');
-  status.textContent = 'Searching...';
-  status.className = 'hint';
+  status.textContent = 'searching...';
+  status.className = 'dim';
   fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=fr&q=' + encodeURIComponent(q))
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      if (!data.length) { status.textContent = 'No results found. Try a different query.'; status.className = 'err'; return; }
+      if (!data.length) { status.textContent = 'no results found'; status.className = 'err'; return; }
       var lat = parseFloat(data[0].lat), lon = parseFloat(data[0].lon);
-      status.textContent = 'Found: ' + data[0].display_name.split(',').slice(0,2).join(',');
-      status.className = 'done';
+      status.innerHTML = '<span class="ok">[ok]</span> ' + data[0].display_name.split(',').slice(0,2).join(',');
+      status.className = '';
       setTimeout(function() { sendCoords(lat, lon); }, 500);
     })
-    .catch(function() { status.textContent = 'Search failed. Try coordinates instead.'; status.className = 'err'; });
+    .catch(function() { status.textContent = 'search failed \u2014 try coordinates instead'; status.className = 'err'; });
 }
 
 function submitManual() {
   var lat = parseFloat(document.getElementById('lat').value);
   var lon = parseFloat(document.getElementById('lon').value);
-  if (isNaN(lat) || isNaN(lon)) { alert('Please enter valid coordinates'); return; }
+  if (isNaN(lat) || isNaN(lon)) { alert('enter valid coordinates'); return; }
   sendCoords(lat, lon);
 }
 
 if (!navigator.geolocation) {
-  showManualForm('Geolocation is not available (requires HTTPS or localhost).');
+  showManualForm('geolocation unavailable (requires HTTPS or localhost)');
 } else {
   navigator.geolocation.getCurrentPosition(
     function(pos) { sendCoords(pos.coords.latitude, pos.coords.longitude); },
-    function(err) { showManualForm('Could not get location: ' + err.message); },
+    function(err) { showManualForm(err.message.toLowerCase()); },
     { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
   );
 }
