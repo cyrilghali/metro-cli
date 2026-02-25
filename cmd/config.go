@@ -78,6 +78,11 @@ func runConfig(cmd *cobra.Command, args []string) error {
 	} else {
 		fmt.Println("  Default station: (not set)")
 	}
+	if len(cfg.Places) > 0 {
+		fmt.Printf("  Saved places:    %d (run \"metro places\" to view)\n", len(cfg.Places))
+	} else {
+		fmt.Println("  Saved places:    (none)")
+	}
 
 	if cfg.Token == "" || cfg.DefaultStation == "" {
 		fmt.Println("\nSetup:")

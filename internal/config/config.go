@@ -7,9 +7,17 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
+type SavedPlace struct {
+	Name string `toml:"name"`
+	Type string `toml:"type"` // "StopArea" or "Address"
+	ID   string `toml:"id"`   // stop area ID (for StopArea type)
+	City string `toml:"city"`
+}
+
 type Config struct {
-	Token          string `toml:"token"`
-	DefaultStation string `toml:"default_station"`
+	Token          string                `toml:"token"`
+	DefaultStation string                `toml:"default_station"`
+	Places         map[string]SavedPlace `toml:"places"`
 }
 
 func Path() string {

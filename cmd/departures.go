@@ -94,6 +94,15 @@ func runDepartures(cmd *cobra.Command, args []string) error {
 		query = cfg.DefaultStation
 	}
 
+	// Check saved places first
+	if saved, ok := lookupSavedPlace(query); ok {
+		fmt.Println()
+		if saved.Type == "StopArea" {
+			return showStopAreaDepartures(c, saved.ID, saved.Name, saved.City, mode)
+		}
+		return showNearbyDepartures(c, saved.Name+" "+saved.City, mode)
+	}
+
 	fmt.Printf("Searching for \"%s\"...\n", query)
 	places, err := c.SearchPlaces(query)
 	if err != nil {
@@ -295,6 +304,21 @@ func pickPlace(places []model.PRIMPlace) (model.PRIMPlace, error) {
 		return places[0], fmt.Errorf("invalid choice, using first result")
 	}
 	return places[idx-1], nil
+}
+
+// lookupSavedPlace checks if the query matches a saved place alias (case-insensitive).
+func lookupSavedPlace(query string) (config.SavedPlace, bool) {
+	cfg, err := config.Load()
+	if err != nil {
+		return config.SavedPlace{}, false
+	}
+	key := strings.ToLower(strings.TrimSpace(query))
+	for alias, place := range cfg.Places {
+		if strings.ToLower(alias) == key {
+			return place, true
+		}
+	}
+	return config.SavedPlace{}, false
 }
 
 // linesList returns a display string of all transport lines at a place.
