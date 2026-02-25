@@ -7,10 +7,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Version is set at build time via ldflags.
+var Version = "dev"
+
 var rootCmd = &cobra.Command{
-	Use:   "metro",
-	Short: "Paris metro departures and disruptions",
-	Long:  "A CLI tool to check next metro departures near you and current traffic disruptions in Paris.",
+	Use:     "metro",
+	Short:   "Paris metro departures and disruptions",
+	Long:    "A CLI tool to check next metro departures near you and current traffic disruptions in Paris.",
+	Version: Version,
 }
 
 func Execute() {
