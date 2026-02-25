@@ -4,9 +4,9 @@
 
 # 🚇 metro-cli
 
-**Prochain passage.**
+_C'est dans combien le prochain ?_
 
-_Real-time Paris metro departures and disruptions in your terminal._
+Real-time Paris metro departures and disruptions in your terminal.
 
 <br>
 
@@ -45,15 +45,11 @@ $ metro disruptions
   M14   OK
 ```
 
-<br>
-
-> **metro** — check when the next one arrives, without leaving your terminal.
-
 ---
 
 <br>
 
-## 📦 Install
+## Install
 
 **From source:**
 
@@ -69,11 +65,11 @@ cd metro-cli
 go build -o metro .
 ```
 
-> **Note:** `go install` produces a binary named `metro-cli`. To get `metro`, use `go build -o metro .` or alias it.
+> `go install` produces a binary named `metro-cli`. To get `metro`, use `go build -o metro .` or alias it.
 
 <br>
 
-## 🔑 Setup
+## Setup
 
 Get a **free** API token at [prim.iledefrance-mobilites.fr](https://prim.iledefrance-mobilites.fr/), then:
 
@@ -106,16 +102,16 @@ Token lookup order: `PRIM_TOKEN` env → `~/.metro.toml` → `.env`
 
 <br>
 
-## 🚉 Usage
+## Usage
 
 ### `metro departures` — next trains
 
 ```bash
-metro departures chatelet              # 🔍 search by station name
-metro departures "gare de lyon"        # 🔍 quotes for multi-word names
-metro departures "73 rue rivoli"       # 📍 search by address (finds nearby stops)
-metro departures --here                # 🌐 auto-detect location via browser
-metro departures                       # ⭐ uses your default station
+metro departures chatelet              # search by station name
+metro departures "gare de lyon"        # quotes for multi-word names
+metro departures "73 rue rivoli"       # search by address (finds nearby stops)
+metro departures --here                # auto-detect location via browser
+metro departures                       # uses your default station
 ```
 
 When multiple stations match, an interactive picker lets you choose:
@@ -134,9 +130,9 @@ Pick a number:
 ### `metro disruptions` — line status
 
 ```bash
-metro disruptions                      # 📊 all 16 metro lines
-metro disruptions --line M14           # 🔎 filter by line
-metro disruptions --line 1             # 🔎 also works without the M prefix
+metro disruptions                      # all 16 metro lines
+metro disruptions --line M14           # filter by line
+metro disruptions --line 1             # also works without the M prefix
 ```
 
 Status is color-coded in your terminal:
@@ -152,16 +148,16 @@ Status is color-coded in your terminal:
 ### `metro config` — settings
 
 ```bash
-metro config                           # 👀 view current config
-metro config --token YOUR_TOKEN        # 🔑 save API token
-metro config --default-station nation   # ⭐ save default station
+metro config                           # view current config
+metro config --token YOUR_TOKEN        # save API token
+metro config --default-station nation  # save default station
 ```
 
 Config is stored in `~/.metro.toml`.
 
 <br>
 
-## 📍 The `--here` flag
+## The `--here` flag
 
 The `--here` flag finds metro stops near your **current location**:
 
@@ -175,7 +171,7 @@ Works on **macOS**, **Linux**, and **Windows**.
 
 <br>
 
-## ⚙️ How it works
+## How it works
 
 | Feature | How |
 |:--------|:----|
@@ -187,22 +183,10 @@ Works on **macOS**, **Linux**, and **Windows**.
 
 All data comes from the [PRIM Île-de-France Mobilités](https://prim.iledefrance-mobilites.fr/) API gateway.
 
-<br>
-
-## 🗺️ Covered lines
-
-All **16 Paris metro lines**: M1 · M2 · M3 · M3B · M4 · M5 · M6 · M7 · M7B · M8 · M9 · M10 · M11 · M12 · M13 · M14
+Covers all **16 Paris metro lines**: M1 · M2 · M3 · M3B · M4 · M5 · M6 · M7 · M7B · M8 · M9 · M10 · M11 · M12 · M13 · M14
 
 <br>
 
-## 📄 License
+## License
 
 [MIT](LICENSE)
-
-<br>
-
----
-
-<p align="center">
-  <em>C'est dans combien le prochain ?</em>
-</p>
