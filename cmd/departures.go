@@ -27,22 +27,35 @@ var departuresCmd = &cobra.Command{
 	Use:   "departures [station or address]",
 	Short: "Show next departures near a location",
 	Long: `Show next departures near a station or address.
+Active disruptions on displayed lines are shown automatically.
+
+Modes:
+  metro   Metro lines M1-M14         (default)
+  rer     RER lines A-E
+  train   Transilien / suburban rail
+  tram    Tramway lines T1-T13
+  bus     Bus lines
+  all     All transport types
 
 Examples:
   metro departures chatelet
   metro departures "gare de lyon"
   metro departures "73 rue rivoli"
-  metro departures --here
   metro departures --mode rer
-  metro departures chatelet --mode all`,
+  metro departures chatelet --mode all
+
+  # auto-detect location via browser
+  metro departures --here
+  metro departures --here --port 8080
+  metro departures --here --cache 5m`,
 	RunE: runDepartures,
 }
 
 func init() {
-	departuresCmd.Flags().BoolVar(&here, "here", false, "auto-detect your location via browser geolocation")
-	departuresCmd.Flags().IntVar(&herePort, "port", 0, "port for the --here location server (0 = random)")
-	departuresCmd.Flags().DurationVar(&hereCacheTTL, "cache", 0, "cache location for this duration (e.g. 5m, 1h)")
-	departuresCmd.Flags().StringVarP(&modeFlag, "mode", "m", "metro", "transport mode: metro, rer, train, tram, bus, all")
+	departuresCmd.Flags().BoolVar(&here, "here", false, "detect location via browser (opens a tab)")
+	departuresCmd.Flags().IntVar(&herePort, "port", 0, "fixed port for --here server (default: random)")
+	departuresCmd.Flags().DurationVar(&hereCacheTTL, "cache", 0, "reuse cached location within this duration (e.g. 5m, 1h)")
+	departuresCmd.Flags().StringVarP(&modeFlag, "mode", "m", "metro", "transport filter (see modes above)")
 	rootCmd.AddCommand(departuresCmd)
 }
 
@@ -159,7 +172,7 @@ func showStopAreaDepartures(c *client.Client, stopID, name, city string, mode mo
 	if err != nil {
 		return fmt.Errorf("fetching departures: %w", err)
 	}
-	display.Departures(deps.Departures, mode.IsAll())
+	display.Departures(deps.Departures, deps.Disruptions, mode.IsAll())
 	fmt.Println()
 	return nil
 }
@@ -222,7 +235,7 @@ func showDeparturesAtCoords(c *client.Client, lon, lat string, mode model.Transp
 			fmt.Printf("  \033[31mError: %v\033[0m\n", err)
 			continue
 		}
-		display.Departures(deps.Departures, mode.IsAll())
+		display.Departures(deps.Departures, deps.Disruptions, mode.IsAll())
 		fmt.Println()
 	}
 	return nil

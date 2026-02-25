@@ -50,9 +50,9 @@ func lineLabel(code, commercialMode string) string {
 	return fmt.Sprintf("%s%s%s", bold, label, reset)
 }
 
-// Departures prints next departures grouped by line+direction.
-// Line labels always include the mode prefix (M1, RER A, T3, etc.).
-func Departures(deps []model.Departure, showMode bool) {
+// Departures prints next departures grouped by line+direction, followed
+// by any active disruptions affecting the displayed lines.
+func Departures(deps []model.Departure, disruptions []model.Disruption, showMode bool) {
 	if len(deps) == 0 {
 		fmt.Printf("  %s(no upcoming departures)%s\n", dim, reset)
 		return
@@ -103,6 +103,70 @@ func Departures(deps []model.Departure, showMode bool) {
 		fmt.Fprintf(w, "  %s\t%s\t%s\n", label, dir, timesStr)
 	}
 	w.Flush()
+
+	// Show active disruptions affecting the displayed lines
+	showDepartureDisruptions(deps, disruptions)
+}
+
+// showDepartureDisruptions prints active disruptions for lines present in the departures.
+func showDepartureDisruptions(deps []model.Departure, disruptions []model.Disruption) {
+	if len(disruptions) == 0 {
+		return
+	}
+
+	// Collect line IDs seen in departures
+	lineIDs := make(map[string]bool)
+	for _, d := range deps {
+		if d.Route.Line != nil {
+			lineIDs[d.Route.Line.ID] = true
+		}
+	}
+
+	// Find active disruptions impacting those lines (deduplicate by disruption ID)
+	type match struct {
+		label      string
+		disruption *model.Disruption
+	}
+	seen := make(map[string]bool)
+	var matches []match
+	for i, d := range disruptions {
+		if d.Status != "active" {
+			continue
+		}
+		for _, io := range d.ImpactedObjects {
+			if !lineIDs[io.PTObject.ID] {
+				continue
+			}
+			if seen[d.ID] {
+				continue
+			}
+			seen[d.ID] = true
+			// Build label from the impacted line name
+			label := io.PTObject.Name
+			// Try to find a better label from departures
+			for _, dep := range deps {
+				if dep.Route.Line != nil && dep.Route.Line.ID == io.PTObject.ID {
+					label = model.LineLabel(dep.DisplayInformations.Code, dep.DisplayInformations.CommercialMode)
+					break
+				}
+			}
+			matches = append(matches, match{label: label, disruption: &disruptions[i]})
+		}
+	}
+
+	if len(matches) == 0 {
+		return
+	}
+
+	fmt.Println()
+	for _, m := range matches {
+		severity := formatSeverity(m.disruption.Severity)
+		msg := extractMessage(*m.disruption)
+		if len(msg) > 80 {
+			msg = msg[:77] + "..."
+		}
+		fmt.Printf("  %s!%s %s%s%s  %s  %s\n", yellow, reset, bold, m.label, reset, severity, msg)
+	}
 }
 
 // DisruptionsSummary prints disruption status for lines of a given mode.

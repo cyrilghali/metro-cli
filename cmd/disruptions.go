@@ -17,7 +17,17 @@ var (
 var disruptionsCmd = &cobra.Command{
 	Use:   "disruptions",
 	Short: "Show current traffic disruptions",
-	Long: `Show current traffic disruptions on Ile-de-France transport lines.
+	Long: `Show current traffic disruptions across Ile-de-France transport lines.
+Useful for a network-wide overview. For disruptions at a specific station,
+use "metro departures <station>" instead (disruptions are shown inline).
+
+Modes:
+  metro   Metro lines M1-M14         (default)
+  rer     RER lines A-E
+  train   Transilien / suburban rail
+  tram    Tramway lines T1-T13
+  bus     Bus lines
+  all     All transport types
 
 Examples:
   metro disruptions
@@ -29,7 +39,7 @@ Examples:
 
 func init() {
 	disruptionsCmd.Flags().StringVar(&lineFilter, "line", "", "filter by line (e.g. M1, A, T3)")
-	disruptionsCmd.Flags().StringVarP(&disruptionMode, "mode", "m", "metro", "transport mode: metro, rer, train, tram, bus, all")
+	disruptionsCmd.Flags().StringVarP(&disruptionMode, "mode", "m", "metro", "transport filter (see modes above)")
 	rootCmd.AddCommand(disruptionsCmd)
 }
 
