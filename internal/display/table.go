@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"sort"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -98,6 +99,16 @@ func Departures(deps []model.Departure, disruptions []model.Disruption, showMode
 		}
 		groups[k].times = append(groups[k].times, FormatMinutesUntil(t))
 	}
+
+	// Sort by transport type (metro first, then RER, train, tram, bus),
+	// then by line code within each type.
+	sort.SliceStable(order, func(i, j int) bool {
+		pi, pj := modePriority(order[i].commercialMode), modePriority(order[j].commercialMode)
+		if pi != pj {
+			return pi < pj
+		}
+		return order[i].lineCode < order[j].lineCode
+	})
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintf(w, "  %sLine\tDirection\tNext departures%s\n", bold, reset)
@@ -231,6 +242,25 @@ func DisruptionsSummary(resp *model.LinesResponse, filterLine string, mode model
 		}
 	}
 	w.Flush()
+}
+
+// modePriority returns a sort rank for a commercial mode name.
+// Lower values appear first: metro < RER < train < tram < bus.
+func modePriority(commercialMode string) int {
+	switch strings.ToLower(commercialMode) {
+	case "metro", "métro":
+		return 0
+	case "rer":
+		return 1
+	case "train", "localtrain":
+		return 2
+	case "tramway":
+		return 3
+	case "bus":
+		return 4
+	default:
+		return 5
+	}
 }
 
 func matchesLineFilter(code, lineLabel, filter string) bool {

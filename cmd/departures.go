@@ -17,11 +17,11 @@ import (
 )
 
 var (
-	here          bool
-	herePort      int
-	hereLAN       bool
-	hereCacheTTL  time.Duration
-	modeFlag      string
+	here         bool
+	herePort     int
+	hereLAN      bool
+	hereCacheTTL time.Duration
+	modeFlag     string
 )
 
 var departuresCmd = &cobra.Command{
@@ -30,6 +30,9 @@ var departuresCmd = &cobra.Command{
 	Short:   "Show next departures near a location",
 	Long: `Show next departures near a station or address.
 Active disruptions on displayed lines are shown automatically.
+Results are grouped by transport type (metro, RER, train, tram, bus).
+
+Aliases: d, dep
 
 Modes:
   all     All transport types          (default)
@@ -40,17 +43,16 @@ Modes:
   bus     Bus lines
 
 Examples:
-  metro departures chatelet
   metro d chatelet
-  metro departures "gare de lyon"
-  metro departures "73 rue rivoli"
-  metro departures --mode metro
-  metro departures chatelet -m rer
+  metro d "gare de lyon"
+  metro d "73 rue rivoli"
+  metro d chatelet -m metro
+  metro d chatelet -m rer
 
   # auto-detect location via browser
-  metro departures --here
-  metro departures --here --port 8080
-  metro departures --here --cache 5m`,
+  metro d --here
+  metro d --here --port 8080
+  metro d --here --cache 5m`,
 	RunE: runDepartures,
 }
 

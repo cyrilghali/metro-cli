@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	lineFilter      string
-	disruptionMode  string
+	lineFilter     string
+	disruptionMode string
 )
 
 var disruptionsCmd = &cobra.Command{
@@ -20,7 +20,9 @@ var disruptionsCmd = &cobra.Command{
 	Short:   "Show current traffic disruptions",
 	Long: `Show current traffic disruptions across Ile-de-France transport lines.
 Useful for a network-wide overview. For disruptions at a specific station,
-use "metro departures <station>" instead (disruptions are shown inline).
+use "metro d <station>" instead (disruptions are shown inline).
+
+Aliases: dis, status
 
 Modes:
   all     All transport types          (default)
@@ -31,10 +33,10 @@ Modes:
   bus     Bus lines
 
 Examples:
-  metro disruptions
-  metro disruptions --line M14
-  metro disruptions --mode rer
-  metro disruptions --mode all --line A`,
+  metro dis
+  metro dis --line M14
+  metro dis -m rer
+  metro status --line A`,
 	RunE: runDisruptions,
 }
 
