@@ -19,6 +19,7 @@ import (
 var (
 	here          bool
 	herePort      int
+	hereLAN       bool
 	hereCacheTTL  time.Duration
 	modeFlag      string
 )
@@ -54,6 +55,7 @@ Examples:
 func init() {
 	departuresCmd.Flags().BoolVar(&here, "here", false, "detect location via browser (opens a tab)")
 	departuresCmd.Flags().IntVar(&herePort, "port", 0, "fixed port for --here server (default: random)")
+	departuresCmd.Flags().BoolVar(&hereLAN, "lan", false, "expose --here server on LAN (default: localhost only)")
 	departuresCmd.Flags().DurationVar(&hereCacheTTL, "cache", 0, "reuse cached location within this duration (e.g. 5m, 1h)")
 	departuresCmd.Flags().StringVarP(&modeFlag, "mode", "m", "metro", "transport filter (see modes above)")
 	rootCmd.AddCommand(departuresCmd)
@@ -146,7 +148,7 @@ func runDeparturesHere(c *client.Client, mode model.TransportMode) error {
 	}
 
 	fmt.Println("Locating you... (opening browser)")
-	lat, lon, err := location.GetLocation(30*time.Second, herePort)
+	lat, lon, err := location.GetLocation(30*time.Second, herePort, hereLAN)
 	if err != nil {
 		return fmt.Errorf("could not get location: %w", err)
 	}
@@ -246,30 +248,14 @@ func hasTransport(p model.PRIMPlace, mode model.TransportMode) bool {
 	if mode.IsAll() {
 		return true
 	}
-	// Map physical_mode IDs to our mode names
-	modeMap := map[string]string{
-		"physical_mode:Metro":        "metro",
-		"physical_mode:RapidTransit": "rer",
-		"physical_mode:LocalTrain":   "train",
-		"physical_mode:Tramway":      "tram",
-		"physical_mode:Bus":          "bus",
-	}
-	// Also check the PRIM "modes" array (uses display names)
-	nameMap := map[string]string{
-		"Metro":   "metro",
-		"RER":     "rer",
-		"Train":   "train",
-		"Tramway": "tram",
-		"Bus":     "bus",
-	}
 	for _, m := range p.Modes {
-		if nameMap[m] == mode.Name {
+		if model.ModeByDisplayName(m) == mode.Name {
 			return true
 		}
 	}
 	for _, l := range p.Lines {
 		for _, m := range l.Mode {
-			if modeMap[m.ID] == mode.Name {
+			if model.ModeByPhysicalID(m.ID) == mode.Name {
 				return true
 			}
 		}
@@ -314,18 +300,7 @@ func linesList(p model.PRIMPlace) string {
 		if len(l.Mode) == 0 {
 			continue
 		}
-		prefix := ""
-		for _, m := range l.Mode {
-			switch m.ID {
-			case "physical_mode:Metro":
-				prefix = "M"
-			case "physical_mode:RapidTransit":
-				prefix = "RER "
-			case "physical_mode:Tramway":
-				prefix = "T"
-			}
-			break
-		}
+		prefix := model.PrefixByPhysicalID(l.Mode[0].ID)
 		lines = append(lines, prefix+l.ShortName)
 	}
 	return strings.Join(lines, ", ")

@@ -169,3 +169,25 @@ func TestMatchesLineFilter(t *testing.T) {
 		}
 	}
 }
+
+func TestTruncate(t *testing.T) {
+	tests := []struct {
+		input string
+		max   int
+		want  string
+	}{
+		{"short", 10, "short"},
+		{"exactly ten", 11, "exactly ten"},
+		{"this is a long string", 10, "this is..."},
+		// French accented characters — must not split mid-rune
+		{"Château de Vincennes direction", 15, "Château de V..."},
+		{"Châtelet", 30, "Châtelet"},
+		{"", 5, ""},
+	}
+	for _, tt := range tests {
+		got := truncate(tt.input, tt.max)
+		if got != tt.want {
+			t.Errorf("truncate(%q, %d) = %q, want %q", tt.input, tt.max, got, tt.want)
+		}
+	}
+}

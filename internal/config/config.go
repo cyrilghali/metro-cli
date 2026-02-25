@@ -31,7 +31,7 @@ func Load() (*Config, error) {
 }
 
 func Save(cfg *Config) error {
-	f, err := os.Create(Path())
+	f, err := os.OpenFile(Path(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}

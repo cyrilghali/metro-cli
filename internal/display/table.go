@@ -44,6 +44,16 @@ func FormatMinutesUntil(t time.Time) string {
 	return fmt.Sprintf("%s%d min%s", cyan, mins, reset)
 }
 
+// truncate safely truncates a string to maxRunes, appending "..." if needed.
+// Uses rune-level slicing so multi-byte UTF-8 characters are not split.
+func truncate(s string, maxRunes int) string {
+	runes := []rune(s)
+	if len(runes) <= maxRunes {
+		return s
+	}
+	return string(runes[:maxRunes-3]) + "..."
+}
+
 // lineLabel returns a formatted label like "M1", "RER A", "T3a".
 func lineLabel(code, commercialMode string) string {
 	label := model.LineLabel(code, commercialMode)
@@ -97,10 +107,7 @@ func Departures(deps []model.Departure, disruptions []model.Disruption, showMode
 		e := groups[k]
 		label := lineLabel(k.lineCode, k.commercialMode)
 
-		dir := k.direction
-		if len(dir) > 30 {
-			dir = dir[:27] + "..."
-		}
+		dir := truncate(k.direction, 30)
 
 		timesStr := strings.Join(e.times, ", ")
 		fmt.Fprintf(w, "  %s\t%s\t%s\n", label, dir, timesStr)
@@ -164,10 +171,7 @@ func showDepartureDisruptions(deps []model.Departure, disruptions []model.Disrup
 	fmt.Println()
 	for _, m := range matches {
 		severity := formatSeverity(m.disruption.Severity)
-		msg := extractMessage(*m.disruption)
-		if len(msg) > 80 {
-			msg = msg[:77] + "..."
-		}
+		msg := truncate(extractMessage(*m.disruption), 80)
 		fmt.Printf("  %s!%s %s%s%s  %s  %s\n", yellow, reset, bold, m.label, reset, severity, msg)
 	}
 }
@@ -221,10 +225,7 @@ func DisruptionsSummary(resp *model.LinesResponse, filterLine string, mode model
 					prefix = "      "
 				}
 				status := formatSeverity(d.Severity)
-				msg := extractMessage(*d)
-				if len(msg) > 70 {
-					msg = msg[:67] + "..."
-				}
+				msg := truncate(extractMessage(*d), 70)
 				fmt.Fprintf(w, "%s\t%s\t%s\n", prefix, status, msg)
 			}
 		}

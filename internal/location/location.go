@@ -51,7 +51,7 @@ func LoadCache(maxAge time.Duration) (lat, lon float64, err error) {
 // SaveCache writes coordinates to the cache file.
 func SaveCache(lat, lon float64) {
 	data, _ := json.Marshal(cachedLocation{Lat: lat, Lon: lon, CachedAt: time.Now()})
-	_ = os.WriteFile(cachePath(), data, 0644)
+	_ = os.WriteFile(cachePath(), data, 0600)
 }
 
 const page = `<!DOCTYPE html>
@@ -203,18 +203,21 @@ if (!navigator.geolocation) {
 // browser's Geolocation API. Works on macOS, Linux, and Windows.
 // If geolocation is blocked (e.g. non-HTTPS access from LAN), the page shows
 // a manual coordinate input form as fallback.
-func GetLocation(timeout time.Duration, port int) (lat, lon float64, err error) {
-	return getLocation(timeout, port)
+func GetLocation(timeout time.Duration, port int, lan bool) (lat, lon float64, err error) {
+	return getLocation(timeout, port, lan)
 }
 
 // getLocation is the internal implementation. If fixedPort > 0, it uses that
 // port (for testing); otherwise it picks a random free port.
-func getLocation(timeout time.Duration, fixedPort int) (float64, float64, error) {
-	// Bind to all interfaces so the page is reachable from the LAN
-	// (needed when running on a NAS or headless server).
-	addr := "0.0.0.0:0"
+// If lan is true, binds to all interfaces (0.0.0.0); otherwise binds to localhost only.
+func getLocation(timeout time.Duration, fixedPort int, lan bool) (float64, float64, error) {
+	host := "127.0.0.1"
+	if lan {
+		host = "0.0.0.0"
+	}
+	addr := fmt.Sprintf("%s:0", host)
 	if fixedPort > 0 {
-		addr = fmt.Sprintf("0.0.0.0:%d", fixedPort)
+		addr = fmt.Sprintf("%s:%d", host, fixedPort)
 	}
 
 	listener, err := net.Listen("tcp", addr)
@@ -256,16 +259,19 @@ func getLocation(timeout time.Duration, fixedPort int) (float64, float64, error)
 		}
 	}()
 
-	// Build URLs — localhost for local use, LAN IP for remote access
+	// Build URLs
 	localhostURL := fmt.Sprintf("http://localhost:%d/locate", port)
-	lanIP := localIP()
-
 	_ = openBrowser(localhostURL) // best-effort, may fail on headless systems
 
-	if lanIP != "127.0.0.1" {
-		lanURL := fmt.Sprintf("http://%s:%d/locate", lanIP, port)
-		fmt.Printf("Open in your browser: %s\n", lanURL)
-		fmt.Printf("  (or locally: %s)\n", localhostURL)
+	if lan {
+		lanIP := localIP()
+		if lanIP != "127.0.0.1" {
+			lanURL := fmt.Sprintf("http://%s:%d/locate", lanIP, port)
+			fmt.Printf("Open in your browser: %s\n", lanURL)
+			fmt.Printf("  (or locally: %s)\n", localhostURL)
+		} else {
+			fmt.Printf("Open in your browser: %s\n", localhostURL)
+		}
 	} else {
 		fmt.Printf("Open in your browser: %s\n", localhostURL)
 	}

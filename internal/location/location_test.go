@@ -17,7 +17,7 @@ func TestCallback(t *testing.T) {
 	var locErr error
 
 	go func() {
-		lat, lon, locErr = getLocation(10*time.Second, port)
+		lat, lon, locErr = getLocation(10*time.Second, port, false)
 		close(done)
 	}()
 
@@ -54,7 +54,7 @@ func TestCallback(t *testing.T) {
 func TestServesHTML(t *testing.T) {
 	const port = 18924
 	go func() {
-		getLocation(5*time.Second, port)
+		getLocation(5*time.Second, port, false)
 	}()
 
 	time.Sleep(200 * time.Millisecond)

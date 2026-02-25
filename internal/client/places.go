@@ -40,7 +40,7 @@ func (c *Client) NavitiaPlaces(query string) (*model.NavitiaPlacesResponse, erro
 // PlacesNearby finds stop points near given coordinates, optionally filtered by mode.
 // If modeFilter is empty, all stop points are returned.
 func (c *Client) PlacesNearby(lon, lat string, radius int, modeFilter string) (*model.PlacesNearbyResponse, error) {
-	path := fmt.Sprintf("coords/%s;%s/places_nearby", lon, lat)
+	path := fmt.Sprintf("coords/%s;%s/places_nearby", url.PathEscape(lon), url.PathEscape(lat))
 	params := url.Values{}
 	params.Set("distance", fmt.Sprintf("%d", radius))
 	params.Add("type[]", "stop_point")
