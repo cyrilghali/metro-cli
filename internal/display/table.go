@@ -22,9 +22,20 @@ const (
 	cyan   = "\033[36m"
 )
 
+// paris is the Europe/Paris timezone used by the Navitia API.
+var paris = func() *time.Location {
+	loc, err := time.LoadLocation("Europe/Paris")
+	if err != nil {
+		// Fallback: CET is UTC+1 (won't handle DST, but better than UTC).
+		return time.FixedZone("CET", 1*60*60)
+	}
+	return loc
+}()
+
 // ParseNavitiaTime parses "20260225T143000" into time.Time.
+// Navitia always returns times in Europe/Paris local time.
 func ParseNavitiaTime(s string) (time.Time, error) {
-	return time.ParseInLocation("20060102T150405", s, time.Now().Location())
+	return time.ParseInLocation("20060102T150405", s, paris)
 }
 
 // FormatMinutesUntil returns "2 min", "now", "~2h30", etc.
