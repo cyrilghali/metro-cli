@@ -70,7 +70,7 @@ Run it again at any time to update to the latest version.
 **From source:**
 
 ```bash
-go install github.com/cyrilghali/metro-cli@latest
+go install github.com/cyrilghali/metro-cli/cmd/metro@latest
 ```
 
 Or clone and build:
@@ -78,10 +78,8 @@ Or clone and build:
 ```bash
 git clone https://github.com/cyrilghali/metro-cli.git
 cd metro-cli
-go build -o metro .
+go build -o metro ./cmd/metro
 ```
-
-> `go install` produces a binary named `metro-cli`. To get `metro`, use `go build -o metro .` or alias it.
 
 <br>
 
