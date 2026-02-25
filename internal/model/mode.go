@@ -74,12 +74,12 @@ func (m TransportMode) IsAll() bool {
 
 // LineLabel returns a formatted line label like "M1", "RER A", "T3a".
 func LineLabel(code string, commercialMode string) string {
-	switch commercialMode {
-	case "Metro":
+	switch strings.ToLower(commercialMode) {
+	case "metro", "métro":
 		return "M" + code
-	case "RER":
+	case "rer":
 		return "RER " + code
-	case "Tramway":
+	case "tramway":
 		return "T" + code
 	default:
 		return code
