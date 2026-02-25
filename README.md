@@ -10,6 +10,8 @@ Real-time Paris metro departures and disruptions in your terminal.
 
 <br>
 
+[![CI](https://img.shields.io/github/actions/workflow/status/cyrilghali/metro-cli/ci.yml?style=flat-square&label=tests)](https://github.com/cyrilghali/metro-cli/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/cyrilghali/metro-cli?style=flat-square&color=0055A4)](https://github.com/cyrilghali/metro-cli/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-0055A4?style=flat-square)](LICENSE)
 [![Go](https://img.shields.io/badge/Go-1.23-00ADD8?style=flat-square&logo=go&logoColor=white)](https://go.dev)
 
