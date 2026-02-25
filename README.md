@@ -6,7 +6,7 @@
 
 _C'est dans combien le prochain ?_
 
-Real-time Paris metro departures and disruptions in your terminal.
+Real-time Ile-de-France departures and disruptions in your terminal.
 
 <br>
 
@@ -24,27 +24,32 @@ $ metro departures chatelet
 
   Châtelet (Paris)
 
-  Line  Direction                  Next departures
-  ----  ---------                  ---------------
-  M1    La Défense                 2 min, 5 min, 9 min
-  M1    Château de Vincennes       now, 4 min, 8 min
-  M4    Porte de Clignancourt      3 min, 7 min
-  M4    Mairie de Montrouge        1 min, 6 min
-  M7    La Courneuve               4 min, 11 min
-  M11   Mairie des Lilas           now, 8 min
-  M14   Olympiades                 2 min, 5 min
+  Line   Direction                  Next departures
+  ----   ---------                  ---------------
+  M1     La Défense                 2 min, 5 min, 9 min
+  M1     Château de Vincennes       now, 4 min, 8 min
+  M4     Porte de Clignancourt      3 min, 7 min
+  M14    Olympiades                 2 min, 5 min
 
-$ metro disruptions
+$ metro departures chatelet --mode rer
 
-  Line  Status       Info
-  ----  ------       ----
-  M1    OK
-  M2    OK
-  M3    Delays       Ralentissement entre Villiers et Opéra
-  M4    OK
-  ...
-  M13   Interrupted  Service interrompu entre Montparnasse et ...
-  M14   OK
+  Châtelet les Halles (Paris)
+
+  Line    Direction                  Next departures
+  ----    ---------                  ---------------
+  RER A   Marne-la-Vallée Chessy     2 min, 14 min
+  RER B   Aéroport CDG 2 TGV        4 min, 19 min
+  RER D   Creil                      7 min
+
+$ metro disruptions --mode rer
+
+  Line    Status       Info
+  ----    ------       ----
+  RER A   OK
+  RER B   OK
+  RER C   Modified     Issy : gare non desservie
+  RER D   Delays       Plan de transport adapté
+  RER E   OK
 ```
 
 ---
@@ -114,6 +119,8 @@ metro departures "gare de lyon"        # quotes for multi-word names
 metro departures "73 rue rivoli"       # search by address (finds nearby stops)
 metro departures --here                # auto-detect location via browser
 metro departures                       # uses your default station
+metro departures chatelet --mode rer   # RER departures
+metro departures chatelet -m all       # all transport modes
 ```
 
 When multiple stations match, an interactive picker lets you choose:
@@ -121,7 +128,7 @@ When multiple stations match, an interactive picker lets you choose:
 ```
 Multiple results found:
   1. Châtelet (Stop [M1, M4, M7, M11, M14]) - Paris
-  2. Châtelet - Les Halles (Stop [RER A, RER B, RER D]) - Paris
+  2. Châtelet les Halles (Stop [RER A, RER B, RER D]) - Paris
   3. Château d'Eau (Stop [M4]) - Paris
 
 Pick a number:
@@ -132,9 +139,11 @@ Pick a number:
 ### `metro disruptions` — line status
 
 ```bash
-metro disruptions                      # all 16 metro lines
-metro disruptions --line M14           # filter by line
-metro disruptions --line 1             # also works without the M prefix
+metro disruptions                      # metro lines (default)
+metro disruptions --mode rer           # RER lines
+metro disruptions --mode tram          # tramway lines
+metro disruptions --mode all           # everything
+metro disruptions --line A             # filter by line
 ```
 
 Status is color-coded in your terminal:
@@ -144,6 +153,21 @@ Status is color-coded in your terminal:
 | 🟢 Green | Normal service |
 | 🟡 Yellow | Delays / reduced / modified service |
 | 🔴 Red | Service interrupted |
+
+<br>
+
+### `--mode` — transport modes
+
+Both `departures` and `disruptions` accept a `--mode` / `-m` flag:
+
+| Mode | What | Lines |
+|:-----|:-----|:------|
+| `metro` | Metro (default) | M1-M14, M3B, M7B |
+| `rer` | RER | A, B, C, D, E |
+| `train` | Transilien | H, J, K, L, N, P, R, U |
+| `tram` | Tramway | T1-T13 |
+| `bus` | Bus | All IDF bus lines |
+| `all` | Everything | All modes |
 
 <br>
 
@@ -161,13 +185,13 @@ Config is stored in `~/.metro.toml`.
 
 ## The `--here` flag
 
-The `--here` flag finds metro stops near your **current location**:
+The `--here` flag finds stops near your **current location**:
 
 1. Starts a temporary local HTTP server
 2. Opens your browser
 3. Browser asks for geolocation permission
 4. Coordinates are sent back to the CLI
-5. Nearby metro stops are found within 500m
+5. Nearby stops are found within 500m
 
 Works on **macOS**, **Linux**, and **Windows**.
 
@@ -177,15 +201,13 @@ Works on **macOS**, **Linux**, and **Windows**.
 
 | Feature | How |
 |:--------|:----|
-| **Station search** | PRIM places API with metro filtering + interactive picker |
-| **Address search** | Navitia geocoding → nearby metro stops within 500m |
+| **Station search** | PRIM places API with mode filtering + interactive picker |
+| **Address search** | Navitia geocoding → nearby stops within 500m |
 | **Geolocation** | Temporary localhost server + browser `navigator.geolocation` |
-| **Departures** | Navitia v2 real-time API, filtered to `physical_mode:Metro` |
+| **Departures** | Navitia v2 real-time API, filtered by transport mode |
 | **Disruptions** | Navitia lines endpoint with embedded disruption data |
 
-All data comes from the [PRIM Île-de-France Mobilités](https://prim.iledefrance-mobilites.fr/) API gateway.
-
-Covers all **16 Paris metro lines**: M1 · M2 · M3 · M3B · M4 · M5 · M6 · M7 · M7B · M8 · M9 · M10 · M11 · M12 · M13 · M14
+All data comes from the [PRIM Ile-de-France Mobilites](https://prim.iledefrance-mobilites.fr/) API gateway.
 
 <br>
 

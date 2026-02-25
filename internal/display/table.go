@@ -44,16 +44,24 @@ func FormatMinutesUntil(t time.Time) string {
 	return fmt.Sprintf("%s%d min%s", cyan, mins, reset)
 }
 
-// Departures prints next departures grouped by line+direction for a station.
-func Departures(stationName string, deps []model.Departure) {
+// lineLabel returns a formatted label like "M1", "RER A", "T3a".
+func lineLabel(code, commercialMode string) string {
+	label := model.LineLabel(code, commercialMode)
+	return fmt.Sprintf("%s%s%s", bold, label, reset)
+}
+
+// Departures prints next departures grouped by line+direction.
+// Line labels always include the mode prefix (M1, RER A, T3, etc.).
+func Departures(deps []model.Departure, showMode bool) {
 	if len(deps) == 0 {
 		fmt.Printf("  %s(no upcoming departures)%s\n", dim, reset)
 		return
 	}
 
 	type key struct {
-		lineCode  string
-		direction string
+		lineCode       string
+		commercialMode string
+		direction      string
 	}
 	type entry struct {
 		times []string
@@ -63,8 +71,9 @@ func Departures(stationName string, deps []model.Departure) {
 
 	for _, d := range deps {
 		k := key{
-			lineCode:  d.DisplayInformations.Code,
-			direction: d.DisplayInformations.Direction,
+			lineCode:       d.DisplayInformations.Code,
+			commercialMode: d.DisplayInformations.CommercialMode,
+			direction:      d.DisplayInformations.Direction,
 		}
 		if _, ok := groups[k]; !ok {
 			groups[k] = &entry{}
@@ -83,7 +92,7 @@ func Departures(stationName string, deps []model.Departure) {
 
 	for _, k := range order {
 		e := groups[k]
-		lineLabel := fmt.Sprintf("%sM%s%s", bold, k.lineCode, reset)
+		label := lineLabel(k.lineCode, k.commercialMode)
 
 		dir := k.direction
 		if len(dir) > 30 {
@@ -91,15 +100,15 @@ func Departures(stationName string, deps []model.Departure) {
 		}
 
 		timesStr := strings.Join(e.times, ", ")
-		fmt.Fprintf(w, "  %s\t%s\t%s\n", lineLabel, dir, timesStr)
+		fmt.Fprintf(w, "  %s\t%s\t%s\n", label, dir, timesStr)
 	}
 	w.Flush()
 }
 
-// DisruptionsSummary prints disruption status for each metro line.
-func DisruptionsSummary(resp *model.LinesResponse, filterLine string) {
+// DisruptionsSummary prints disruption status for lines of a given mode.
+func DisruptionsSummary(resp *model.LinesResponse, filterLine string, mode model.TransportMode) {
 	if resp == nil || len(resp.Lines) == 0 {
-		fmt.Printf("%sNo metro lines found.%s\n", dim, reset)
+		fmt.Printf("%sNo lines found.%s\n", dim, reset)
 		return
 	}
 
@@ -110,7 +119,6 @@ func DisruptionsSummary(resp *model.LinesResponse, filterLine string) {
 		dmap[d.ID] = d
 	}
 
-	// Each line has links to disruptions via impacted_objects
 	// Build map: line ID -> active disruptions
 	lineDisruptions := make(map[string][]*model.Disruption)
 	for _, d := range resp.Disruptions {
@@ -128,20 +136,22 @@ func DisruptionsSummary(resp *model.LinesResponse, filterLine string) {
 
 	for _, line := range resp.Lines {
 		code := line.Code
-		if filterLine != "" && !strings.EqualFold(code, filterLine) && !strings.EqualFold("M"+code, filterLine) {
+		lineLabel := mode.Prefix + code
+
+		if filterLine != "" && !matchesLineFilter(code, lineLabel, filterLine) {
 			continue
 		}
 
-		lineLabel := fmt.Sprintf("%sM%-3s%s", bold, code, reset)
+		label := fmt.Sprintf("%s%-6s%s", bold, lineLabel, reset)
 		disruptions := lineDisruptions[line.ID]
 
 		if len(disruptions) == 0 {
-			fmt.Fprintf(w, "%s\t%sOK%s\t\n", lineLabel, green, reset)
+			fmt.Fprintf(w, "%s\t%sOK%s\t\n", label, green, reset)
 		} else {
 			for i, d := range disruptions {
-				prefix := lineLabel
+				prefix := label
 				if i > 0 {
-					prefix = "    "
+					prefix = "      "
 				}
 				status := formatSeverity(d.Severity)
 				msg := extractMessage(*d)
@@ -153,6 +163,16 @@ func DisruptionsSummary(resp *model.LinesResponse, filterLine string) {
 		}
 	}
 	w.Flush()
+}
+
+func matchesLineFilter(code, lineLabel, filter string) bool {
+	f := strings.ToUpper(strings.TrimSpace(filter))
+	return strings.EqualFold(code, f) ||
+		strings.EqualFold(lineLabel, f) ||
+		strings.EqualFold("M"+code, f) ||
+		strings.EqualFold("RER "+code, f) ||
+		strings.EqualFold("RER"+code, f) ||
+		strings.EqualFold("T"+code, f)
 }
 
 func formatSeverity(s model.Severity) string {
@@ -184,7 +204,6 @@ func extractMessage(d model.Disruption) string {
 		}
 	}
 	if len(d.Messages) > 0 {
-		// Strip HTML tags for web messages
 		text := d.Messages[0].Text
 		text = stripHTMLTags(text)
 		return text

@@ -7,14 +7,17 @@ import (
 	"github.com/cyrilghali/metro-cli/internal/model"
 )
 
-// Departures fetches next departures at a stop area, filtered to metro.
-func (c *Client) Departures(stopAreaID string, count int) (*model.DeparturesResponse, error) {
+// Departures fetches next departures at a stop area, optionally filtered by mode.
+// If modeFilter is empty, all transport modes are returned.
+func (c *Client) Departures(stopAreaID string, count int, modeFilter string) (*model.DeparturesResponse, error) {
 	path := fmt.Sprintf("stop_areas/%s/departures", stopAreaID)
 	params := url.Values{}
 	params.Set("count", fmt.Sprintf("%d", count))
 	params.Set("data_freshness", "realtime")
 	params.Set("depth", "2")
-	params.Set("filter", metroFilter)
+	if modeFilter != "" {
+		params.Set("filter", modeFilter)
+	}
 
 	data, err := c.navitia(path, params)
 	if err != nil {

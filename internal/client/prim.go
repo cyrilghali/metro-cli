@@ -16,7 +16,6 @@ import (
 const (
 	primBase    = "https://prim.iledefrance-mobilites.fr/marketplace"
 	navitiaBase = primBase + "/v2/navitia"
-	metroFilter = "physical_mode.id=physical_mode:Metro"
 )
 
 type Client struct {

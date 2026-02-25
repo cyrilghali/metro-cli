@@ -8,7 +8,7 @@ import (
 )
 
 // SearchPlaces searches for places (stops, addresses) matching a query string.
-// Uses the PRIM custom /marketplace/places endpoint (returns metro line info).
+// Uses the PRIM custom /marketplace/places endpoint (returns line info).
 func (c *Client) SearchPlaces(query string) (*model.PRIMPlacesResponse, error) {
 	params := url.Values{}
 	params.Set("q", query)
@@ -37,14 +37,17 @@ func (c *Client) NavitiaPlaces(query string) (*model.NavitiaPlacesResponse, erro
 	return decode[model.NavitiaPlacesResponse](data)
 }
 
-// PlacesNearby finds stop points near given coordinates, filtered to metro.
-func (c *Client) PlacesNearby(lon, lat string, radius int) (*model.PlacesNearbyResponse, error) {
+// PlacesNearby finds stop points near given coordinates, optionally filtered by mode.
+// If modeFilter is empty, all stop points are returned.
+func (c *Client) PlacesNearby(lon, lat string, radius int, modeFilter string) (*model.PlacesNearbyResponse, error) {
 	path := fmt.Sprintf("coords/%s;%s/places_nearby", lon, lat)
 	params := url.Values{}
 	params.Set("distance", fmt.Sprintf("%d", radius))
 	params.Add("type[]", "stop_point")
-	params.Set("filter", metroFilter)
-	params.Set("count", "20")
+	if modeFilter != "" {
+		params.Set("filter", modeFilter)
+	}
+	params.Set("count", "30")
 	params.Set("depth", "2")
 
 	data, err := c.navitia(path, params)

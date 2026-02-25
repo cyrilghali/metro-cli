@@ -16,24 +16,29 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var here bool
+var (
+	here        bool
+	modeFlag    string
+)
 
 var departuresCmd = &cobra.Command{
 	Use:   "departures [station or address]",
-	Short: "Show next metro departures near a location",
-	Long: `Show next metro departures near a station or address.
+	Short: "Show next departures near a location",
+	Long: `Show next departures near a station or address.
 
 Examples:
   metro departures chatelet
   metro departures "gare de lyon"
   metro departures "73 rue rivoli"
-  metro departures --here             # auto-detect location via browser
-  metro departures                    # uses default station from config`,
+  metro departures --here
+  metro departures --mode rer
+  metro departures chatelet --mode all`,
 	RunE: runDepartures,
 }
 
 func init() {
 	departuresCmd.Flags().BoolVar(&here, "here", false, "auto-detect your location via browser geolocation")
+	departuresCmd.Flags().StringVarP(&modeFlag, "mode", "m", "metro", "transport mode: metro, rer, train, tram, bus, all")
 	rootCmd.AddCommand(departuresCmd)
 }
 
@@ -43,9 +48,14 @@ func runDepartures(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	mode, err := model.ParseMode(modeFlag)
+	if err != nil {
+		return err
+	}
+
 	// --here: use browser geolocation
 	if here {
-		return runDeparturesHere(c)
+		return runDeparturesHere(c, mode)
 	}
 
 	// Station/address search
@@ -70,15 +80,16 @@ func runDepartures(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no results found for \"%s\"", query)
 	}
 
-	// Filter: metro stop areas + addresses
+	// Filter: stop areas + addresses
 	var candidates []model.PRIMPlace
 	for _, p := range places.Places {
-		if p.Type == "StopArea" && hasMetro(p) {
+		if p.Type == "StopArea" && hasTransport(p, mode) {
 			candidates = append(candidates, p)
 		} else if p.Type == "Address" {
 			candidates = append(candidates, p)
 		}
 	}
+	// Fallback: any stop area or address
 	if len(candidates) == 0 {
 		for _, p := range places.Places {
 			if p.Type == "StopArea" || p.Type == "Address" {
@@ -87,7 +98,7 @@ func runDepartures(cmd *cobra.Command, args []string) error {
 		}
 	}
 	if len(candidates) == 0 {
-		return fmt.Errorf("no metro stops or addresses found for \"%s\"", query)
+		return fmt.Errorf("no stops or addresses found for \"%s\"", query)
 	}
 
 	place := candidates[0]
@@ -102,24 +113,24 @@ func runDepartures(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	if place.Type == "StopArea" {
-		return showStopAreaDepartures(c, place.ID, place.Name, place.City)
+		return showStopAreaDepartures(c, place.ID, place.Name, place.City, mode)
 	}
-	return showNearbyDepartures(c, place.Name+" "+place.City)
+	return showNearbyDepartures(c, place.Name+" "+place.City, mode)
 }
 
 // runDeparturesHere uses browser geolocation to find the user's position.
-func runDeparturesHere(c *client.Client) error {
+func runDeparturesHere(c *client.Client, mode model.TransportMode) error {
 	fmt.Println("Locating you... (opening browser)")
 	lat, lon, err := location.GetLocation(30 * time.Second)
 	if err != nil {
 		return fmt.Errorf("could not get location: %w", err)
 	}
 	fmt.Printf("Found you at %.6f, %.6f\n", lat, lon)
-	return showDeparturesAtCoords(c, fmt.Sprintf("%.6f", lon), fmt.Sprintf("%.6f", lat))
+	return showDeparturesAtCoords(c, fmt.Sprintf("%.6f", lon), fmt.Sprintf("%.6f", lat), mode)
 }
 
 // showStopAreaDepartures fetches and displays departures for a specific stop area.
-func showStopAreaDepartures(c *client.Client, stopID, name, city string) error {
+func showStopAreaDepartures(c *client.Client, stopID, name, city string, mode model.TransportMode) error {
 	label := name
 	if city != "" {
 		label = fmt.Sprintf("\033[1m%s\033[0m (%s)", name, city)
@@ -127,18 +138,18 @@ func showStopAreaDepartures(c *client.Client, stopID, name, city string) error {
 		label = fmt.Sprintf("\033[1m%s\033[0m", name)
 	}
 	fmt.Println(label)
-	deps, err := c.Departures(stopID, 15)
+	deps, err := c.Departures(stopID, 20, mode.Filter)
 	if err != nil {
 		return fmt.Errorf("fetching departures: %w", err)
 	}
-	display.Departures(name, deps.Departures)
+	display.Departures(deps.Departures, mode.IsAll())
 	fmt.Println()
 	return nil
 }
 
-// showNearbyDepartures resolves an address to coordinates, then shows nearby metro departures.
-func showNearbyDepartures(c *client.Client, addressQuery string) error {
-	fmt.Printf("Finding metro stops near %s...\n", addressQuery)
+// showNearbyDepartures resolves an address to coordinates, then shows nearby departures.
+func showNearbyDepartures(c *client.Client, addressQuery string, mode model.TransportMode) error {
+	fmt.Printf("Finding stops near %s...\n", addressQuery)
 	navResp, err := c.NavitiaPlaces(addressQuery)
 	if err != nil {
 		return fmt.Errorf("resolving address: %w", err)
@@ -159,13 +170,13 @@ func showNearbyDepartures(c *client.Client, addressQuery string) error {
 		return fmt.Errorf("could not resolve coordinates for \"%s\"", addressQuery)
 	}
 
-	return showDeparturesAtCoords(c, lon, lat)
+	return showDeparturesAtCoords(c, lon, lat, mode)
 }
 
-// showDeparturesAtCoords finds metro stops near coordinates and shows departures for each.
-func showDeparturesAtCoords(c *client.Client, lon, lat string) error {
-	fmt.Printf("Finding metro stops nearby...\n\n")
-	nearby, err := c.PlacesNearby(lon, lat, 500)
+// showDeparturesAtCoords finds stops near coordinates and shows departures for each.
+func showDeparturesAtCoords(c *client.Client, lon, lat string, mode model.TransportMode) error {
+	fmt.Printf("Finding stops nearby...\n\n")
+	nearby, err := c.PlacesNearby(lon, lat, 500, mode.Filter)
 	if err != nil {
 		return err
 	}
@@ -184,26 +195,53 @@ func showDeparturesAtCoords(c *client.Client, lon, lat string) error {
 	}
 
 	if len(areas) == 0 {
-		return fmt.Errorf("no metro stops found within 500m")
+		return fmt.Errorf("no stops found within 500m")
 	}
 
 	for _, sa := range areas {
 		fmt.Printf("\033[1m%s\033[0m\n", sa.Name)
-		deps, err := c.Departures(sa.ID, 10)
+		deps, err := c.Departures(sa.ID, 15, mode.Filter)
 		if err != nil {
 			fmt.Printf("  \033[31mError: %v\033[0m\n", err)
 			continue
 		}
-		display.Departures(sa.Name, deps.Departures)
+		display.Departures(deps.Departures, mode.IsAll())
 		fmt.Println()
 	}
 	return nil
 }
 
-func hasMetro(p model.PRIMPlace) bool {
+// hasTransport checks if a PRIM place has the requested transport mode.
+func hasTransport(p model.PRIMPlace, mode model.TransportMode) bool {
+	if mode.IsAll() {
+		return true
+	}
+	// Map physical_mode IDs to our mode names
+	modeMap := map[string]string{
+		"physical_mode:Metro":        "metro",
+		"physical_mode:RapidTransit": "rer",
+		"physical_mode:LocalTrain":   "train",
+		"physical_mode:Tramway":      "tram",
+		"physical_mode:Bus":          "bus",
+	}
+	// Also check the PRIM "modes" array (uses display names)
+	nameMap := map[string]string{
+		"Metro":   "metro",
+		"RER":     "rer",
+		"Train":   "train",
+		"Tramway": "tram",
+		"Bus":     "bus",
+	}
 	for _, m := range p.Modes {
-		if m == "Metro" {
+		if nameMap[m] == mode.Name {
 			return true
+		}
+	}
+	for _, l := range p.Lines {
+		for _, m := range l.Mode {
+			if modeMap[m.ID] == mode.Name {
+				return true
+			}
 		}
 	}
 	return false
@@ -216,10 +254,10 @@ func pickPlace(places []model.PRIMPlace) (model.PRIMPlace, error) {
 		if label == "StopArea" {
 			label = "Stop"
 		}
-		metroLines := metroLinesList(p)
+		lines := linesList(p)
 		extra := ""
-		if metroLines != "" {
-			extra = " [" + metroLines + "]"
+		if lines != "" {
+			extra = " [" + lines + "]"
 		}
 		if p.City != "" {
 			extra += " - " + p.City
@@ -239,15 +277,26 @@ func pickPlace(places []model.PRIMPlace) (model.PRIMPlace, error) {
 	return places[idx-1], nil
 }
 
-func metroLinesList(p model.PRIMPlace) string {
+// linesList returns a display string of all transport lines at a place.
+func linesList(p model.PRIMPlace) string {
 	var lines []string
 	for _, l := range p.Lines {
-		for _, m := range l.Mode {
-			if m.ID == "physical_mode:Metro" {
-				lines = append(lines, "M"+l.ShortName)
-				break
-			}
+		if len(l.Mode) == 0 {
+			continue
 		}
+		prefix := ""
+		for _, m := range l.Mode {
+			switch m.ID {
+			case "physical_mode:Metro":
+				prefix = "M"
+			case "physical_mode:RapidTransit":
+				prefix = "RER "
+			case "physical_mode:Tramway":
+				prefix = "T"
+			}
+			break
+		}
+		lines = append(lines, prefix+l.ShortName)
 	}
 	return strings.Join(lines, ", ")
 }
