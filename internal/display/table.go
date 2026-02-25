@@ -79,6 +79,9 @@ func Departures(deps []model.Departure, disruptions []model.Disruption, showMode
 			groups[k] = &entry{}
 			order = append(order, k)
 		}
+		if len(groups[k].times) >= 3 {
+			continue
+		}
 		t, err := ParseNavitiaTime(d.StopDateTime.DepartureDateTime)
 		if err != nil {
 			continue

@@ -168,7 +168,7 @@ func showStopAreaDepartures(c *client.Client, stopID, name, city string, mode mo
 		label = fmt.Sprintf("\033[1m%s\033[0m", name)
 	}
 	fmt.Println(label)
-	deps, err := c.Departures(stopID, 20, mode.Filter)
+	deps, err := c.Departures(stopID, 60, mode.Filter)
 	if err != nil {
 		return fmt.Errorf("fetching departures: %w", err)
 	}
@@ -230,7 +230,7 @@ func showDeparturesAtCoords(c *client.Client, lon, lat string, mode model.Transp
 
 	for _, sa := range areas {
 		fmt.Printf("\033[1m%s\033[0m\n", sa.Name)
-		deps, err := c.Departures(sa.ID, 15, mode.Filter)
+		deps, err := c.Departures(sa.ID, 40, mode.Filter)
 		if err != nil {
 			fmt.Printf("  \033[31mError: %v\033[0m\n", err)
 			continue
