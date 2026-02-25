@@ -17,9 +17,10 @@ import (
 )
 
 var (
-	here        bool
-	herePort    int
-	modeFlag    string
+	here          bool
+	herePort      int
+	hereCacheTTL  time.Duration
+	modeFlag      string
 )
 
 var departuresCmd = &cobra.Command{
@@ -40,6 +41,7 @@ Examples:
 func init() {
 	departuresCmd.Flags().BoolVar(&here, "here", false, "auto-detect your location via browser geolocation")
 	departuresCmd.Flags().IntVar(&herePort, "port", 0, "port for the --here location server (0 = random)")
+	departuresCmd.Flags().DurationVar(&hereCacheTTL, "cache", 0, "cache location for this duration (e.g. 5m, 1h)")
 	departuresCmd.Flags().StringVarP(&modeFlag, "mode", "m", "metro", "transport mode: metro, rer, train, tram, bus, all")
 	rootCmd.AddCommand(departuresCmd)
 }
@@ -122,12 +124,25 @@ func runDepartures(cmd *cobra.Command, args []string) error {
 
 // runDeparturesHere uses browser geolocation to find the user's position.
 func runDeparturesHere(c *client.Client, mode model.TransportMode) error {
+	// Try cache first
+	if hereCacheTTL > 0 {
+		if lat, lon, err := location.LoadCache(hereCacheTTL); err == nil {
+			fmt.Printf("Using cached location (%.6f, %.6f)\n", lat, lon)
+			return showDeparturesAtCoords(c, fmt.Sprintf("%.6f", lon), fmt.Sprintf("%.6f", lat), mode)
+		}
+	}
+
 	fmt.Println("Locating you... (opening browser)")
 	lat, lon, err := location.GetLocation(30*time.Second, herePort)
 	if err != nil {
 		return fmt.Errorf("could not get location: %w", err)
 	}
 	fmt.Printf("Found you at %.6f, %.6f\n", lat, lon)
+
+	if hereCacheTTL > 0 {
+		location.SaveCache(lat, lon)
+	}
+
 	return showDeparturesAtCoords(c, fmt.Sprintf("%.6f", lon), fmt.Sprintf("%.6f", lat), mode)
 }
 

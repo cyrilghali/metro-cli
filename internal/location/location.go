@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"time"
 )
@@ -14,6 +16,42 @@ import (
 type coords struct {
 	Lat float64 `json:"lat"`
 	Lon float64 `json:"lon"`
+}
+
+type cachedLocation struct {
+	Lat      float64   `json:"lat"`
+	Lon      float64   `json:"lon"`
+	CachedAt time.Time `json:"cached_at"`
+}
+
+func cachePath() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ".metro_location_cache.json"
+	}
+	return filepath.Join(home, ".metro_location_cache.json")
+}
+
+// LoadCache returns cached coordinates if they are younger than maxAge.
+func LoadCache(maxAge time.Duration) (lat, lon float64, err error) {
+	data, err := os.ReadFile(cachePath())
+	if err != nil {
+		return 0, 0, err
+	}
+	var c cachedLocation
+	if err := json.Unmarshal(data, &c); err != nil {
+		return 0, 0, err
+	}
+	if time.Since(c.CachedAt) > maxAge {
+		return 0, 0, fmt.Errorf("cache expired")
+	}
+	return c.Lat, c.Lon, nil
+}
+
+// SaveCache writes coordinates to the cache file.
+func SaveCache(lat, lon float64) {
+	data, _ := json.Marshal(cachedLocation{Lat: lat, Lon: lon, CachedAt: time.Now()})
+	_ = os.WriteFile(cachePath(), data, 0644)
 }
 
 const page = `<!DOCTYPE html>
