@@ -40,3 +40,8 @@ jobs:
         run: |
           git tag "${{ steps.bump.outputs.new }}"
           git push origin "${{ steps.bump.outputs.new }}"
+
+      - name: Trigger release workflow
+        run: gh workflow run release.yml --ref "${{ steps.bump.outputs.new }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
